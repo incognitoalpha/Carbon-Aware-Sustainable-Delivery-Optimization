@@ -1,0 +1,13 @@
+version: '3'
+services:
+  osrm:
+    image: osrm/osrm-backend
+    ports:
+      - "5000:5000"
+    volumes:
+      - ../data/raw:/data
+    command: >
+      sh -c "osrm-extract -p /opt/car.lua /data/osm_graph.graphml &&
+             osrm-partition /data/osm_graph.osrm &&
+             osrm-customize /data/osm_graph.osrm &&
+             osrm-routed --algorithm mld /data/osm_graph.osrm"

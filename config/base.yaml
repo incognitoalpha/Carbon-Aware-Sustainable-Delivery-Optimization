@@ -1,0 +1,11 @@
+seed: 42
+data:
+  city: "mumbai"
+  grid_km: 10
+  orders_per_day: 10000
+emissions:
+  factor_source: "hbefa_lite"
+  ev_reserve_soc: 0.15
+rl:
+  algorithm: "ppo"
+  constraint_method: "lagrangian"

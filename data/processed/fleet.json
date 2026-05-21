@@ -1,0 +1,5 @@
+[
+  {"type": "petrol_bike", "co2_per_km_grams": 89, "speed_factor": 1.0},
+  {"type": "ev_bike",     "co2_per_km_grams": 0,  "kwh_per_km": 0.025, "battery_kwh": 3.0, "speed_factor": 0.95},
+  {"type": "bicycle",     "co2_per_km_grams": 0,  "speed_factor": 0.6}
+]

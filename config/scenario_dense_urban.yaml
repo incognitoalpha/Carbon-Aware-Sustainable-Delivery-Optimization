@@ -1,0 +1,10 @@
+defaults:
+  - base
+
+scenario_name: "dense_urban"
+soc_constraint_enabled: true
+fleet_mix:
+  petrol_bike: 0.5
+  ev_bike: 0.5
+traffic: "peak"
+orders_per_day: 15000

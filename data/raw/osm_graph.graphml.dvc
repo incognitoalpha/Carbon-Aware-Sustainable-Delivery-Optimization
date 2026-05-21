@@ -1,0 +1,5 @@
+outs:
+- md5: ff477f1b855a53564b960e35f78817e5
+  size: 4491193
+  hash: md5
+  path: osm_graph.graphml

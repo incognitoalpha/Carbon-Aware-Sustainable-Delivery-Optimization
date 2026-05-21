@@ -1,0 +1,10 @@
+defaults:
+  - base
+
+scenario_name: "suburban"
+soc_constraint_enabled: true
+fleet_mix:
+  petrol_bike: 0.2
+  ev_bike: 0.8
+traffic: "offpeak"
+orders_per_day: 5000
