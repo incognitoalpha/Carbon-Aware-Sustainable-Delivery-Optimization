@@ -1,5 +1,8 @@
 import pandas as pd
 import os
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 def generate_comparison_table():
     os.makedirs('results', exist_ok=True)
