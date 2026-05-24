@@ -1,5 +1,7 @@
 ---
-"on":
+name: Evaluate
+
+on:
   push:
     branches:
       - main
