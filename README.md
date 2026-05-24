@@ -116,9 +116,30 @@ python -m http.server 8000
 ---
 
 ## Evaluation & Results
-The system is evaluated against strict heuristics, including Shortest-Time and Emission-Weighted Dijkstra routing. 
+The system is evaluated against strict heuristics, including Shortest-Time and Emission-Weighted Dijkstra routing.
 
-The RL agent successfully learns to sacrifice time strictly on low-priority orders to leverage green transit corridors, yielding an optimal reduction in CO₂ per order while ensuring SLA compliance rates >96%. Interactive results are available via the included `dashboard.html`.
+The RL agent successfully learns to sacrifice time strictly on low-priority orders to leverage green transit corridors, yielding an optimal reduction in CO₂ per order while ensuring SLA compliance rates >96%.
+
+**Introducing the "Super Dashboard":**
+Our new interactive "Super Dashboard" provides a comprehensive view of the optimization results, integrating analytical deep-dives with strategic comparison tools. It includes:
+
+1.  **Top Layer (The Context):**
+    *   **Interactive City Map:** A heatmap showing delivery density and congestion hotspots.
+    *   **Scenario Selector:** Toggle between Standard, Heatwave, and High Demand environments.
+
+2.  **Middle Layer (The Comparison):**
+    *   **Side-by-Side Metric Cards:** Compare CO₂, Time, and SLA for Strategy A vs. Strategy B.
+    *   **Dual Fleet Mix Charts:** See exactly how each strategy allocates Petrol, EVs, and Bicycles.
+
+3.  **Analytical Layer (The "Why"):**
+    *   **Overlaid Hourly Trends:** A single line graph showing both strategies' carbon output across 24 hours.
+    *   **Efficiency Scatter:** A direct plot showing which strategy is "Strictly Better" (Dominant).
+    *   **Pareto Evolution:** The background training history of the RL Agent.
+
+4.  **Bottom Layer (The Interpretation):**
+    *   **AI Insight Engine:** A text-based summary of the trade-offs between the two selected strategies.
+
+Interactive results are available via the included `dashboard.html`.
 
 ---
 

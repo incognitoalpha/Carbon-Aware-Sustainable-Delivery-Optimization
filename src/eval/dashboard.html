@@ -3,166 +3,263 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Carbon-Aware Routing Results</title>
+    <title>Carbon-Aware Logistics - Enterprise Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://leaflet.github.io/Leaflet.heat/dist/leaflet-heat.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; background: #f5f7fa; color: #333; }
-        .header { background: #2c3e50; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
-        .controls { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        select { padding: 8px; border-radius: 4px; border: 1px solid #ccc; font-size: 16px; margin-right: 15px; }
-        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
-        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center; }
-        .card h3 { margin-top: 0; color: #7f8c8d; font-size: 1.1em; }
-        .metric-value { font-size: 2em; font-weight: bold; color: #27ae60; transition: color 0.3s; }
-        .chart-container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-top: 20px; height: 400px; }
-        .warning { background: #e74c3c; color: white; padding: 10px; text-align: center; border-radius: 4px; margin-bottom: 20px; display: none; }
+        :root { --primary: #2c3e50; --accent: #27ae60; --bg: #f8f9fa; --a-color: #3498db; --b-color: #e67e22; }
+        body { font-family: 'Inter', 'Segoe UI', sans-serif; margin: 0; background: var(--bg); color: #333; }
+        .app-container { display: flex; flex-direction: column; min-height: 100vh; }
+        
+        /* Header */
+        .top-nav { background: var(--primary); color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .top-nav h1 { margin: 0; font-size: 1.4rem; letter-spacing: -0.5px; }
+        
+        /* Main Controls */
+        .main-content { flex: 1; padding: 25px; max-width: 1400px; margin: 0 auto; width: 100%; box-sizing: border-box; }
+        .global-controls { background: white; padding: 15px 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 25px; display: flex; align-items: center; gap: 30px; }
+        select { padding: 10px 15px; border-radius: 6px; border: 1px solid #dfe6e9; background: #fff; font-size: 0.95rem; cursor: pointer; }
+        
+        /* Map Section */
+        #map { height: 350px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #eee; }
+        
+        /* Versus Metrics */
+        .versus-container { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 25px; }
+        .strategy-header { display: flex; align-items: center; gap: 15px; margin-bottom: 15px; }
+        .dot { height: 12px; width: 12px; border-radius: 50%; }
+        .metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+        .card { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.03); text-align: center; border-bottom: 4px solid #eee; }
+        .card.a { border-bottom-color: var(--a-color); }
+        .card.b { border-bottom-color: var(--b-color); }
+        .card h4 { margin: 0; color: #636e72; font-size: 0.8rem; text-transform: uppercase; }
+        .val { font-size: 1.5rem; font-weight: 700; margin-top: 8px; }
+
+        /* Comparative Charts */
+        .charts-section { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 25px; }
+        .chart-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); height: 350px; }
+        .chart-card.full { grid-column: span 2; }
+        
+        /* Insights */
+        .insights-box { background: #eef2f7; border-left: 6px solid var(--a-color); padding: 20px 30px; border-radius: 12px; margin-bottom: 40px; }
+        .insights-box h3 { margin-top: 0; color: var(--primary); display: flex; align-items: center; gap: 10px; }
+        #insight-text { font-size: 1.05rem; line-height: 1.6; }
     </style>
 </head>
 <body>
-    <div id="cors-warning" class="warning">
-        ⚠️ You are viewing this via file://. The dashboard cannot load local CSV files due to browser security. Please run a local server (e.g., <code>python -m http.server</code> in the project root) and open http://localhost:8000/src/eval/dashboard.html
-    </div>
+    <div class="app-container">
+        <header class="top-nav">
+            <h1>Carbon-Aware Sustainable Delivery Optimization</h1>
+            <div class="scenario-wrap">
+                <label>Active Scenario: </label>
+                <select id="scenario" onchange="updateAll()">
+                    <option value="Standard">Standard City</option>
+                    <option value="Heatwave">Heatwave (42°C)</option>
+                    <option value="HighDemand">High Demand Peak</option>
+                </select>
+            </div>
+        </header>
 
-    <div class="header">
-        <h1>Carbon-Aware Sustainable Delivery Optimization</h1>
-        <p>Interactive Results Dashboard (Live Data)</p>
-    </div>
-    
-    <div class="controls">
-        <label for="policy">Baseline Comparison Policy:</label>
-        <select id="policy" onchange="updateCards()">
-            <option value="RL Agent (Proposed)">RL Agent (Proposed)</option>
-            <option value="Shortest Time Baseline">Shortest Time Baseline</option>
-            <option value="Emission Weighted Baseline">Emission Weighted Baseline</option>
-            <option value="CSP Baseline">CSP Baseline</option>
-        </select>
-    </div>
-    
-    <div class="dashboard-grid">
-        <div class="card">
-            <h3>Avg CO₂ per Order</h3>
-            <div id="co2-val" class="metric-value">Loading...</div>
-        </div>
-        <div class="card">
-            <h3>Avg Delivery Time</h3>
-            <div id="time-val" class="metric-value" style="color: #2980b9;">Loading...</div>
-        </div>
-        <div class="card">
-            <h3>SLA Compliance</h3>
-            <div id="sla-val" class="metric-value" style="color: #f39c12;">Loading...</div>
-        </div>
-        <div class="card">
-            <h3>Operational Cost Index</h3>
-            <div id="cost-val" class="metric-value" style="color: #8e44ad;">Loading...</div>
-        </div>
-    </div>
-    
-    <div class="chart-container">
-        <canvas id="paretoChart"></canvas>
+        <main class="main-content">
+            <!-- 1. The Map -->
+            <div id="map"></div>
+
+            <!-- 2. Strategy Selectors & Quick Metrics -->
+            <div class="versus-container">
+                <div class="strategy-wrap">
+                    <div class="strategy-header">
+                        <div class="dot" style="background: var(--a-color)"></div>
+                        <select id="policyA" onchange="updateAll()">
+                            <option value="RL Agent (Proposed)">RL Agent (Proposed)</option>
+                            <option value="Shortest Time Baseline">Shortest Time Baseline</option>
+                            <option value="Emission Weighted Baseline">Emission Weighted Baseline</option>
+                            <option value="CSP Baseline">CSP Baseline</option>
+                        </select>
+                    </div>
+                    <div class="metrics-grid">
+                        <div class="card a"><h4>CO₂/Order</h4><div id="co2-a" class="val">--</div></div>
+                        <div class="card a"><h4>Delivery Time</h4><div id="time-a" class="val">--</div></div>
+                        <div class="card a"><h4>SLA Score</h4><div id="sla-a" class="val">--</div></div>
+                    </div>
+                </div>
+                <div class="strategy-wrap">
+                    <div class="strategy-header">
+                        <div class="dot" style="background: var(--b-color)"></div>
+                        <select id="policyB" onchange="updateAll()">
+                            <option value="Shortest Time Baseline">Shortest Time Baseline</option>
+                            <option value="RL Agent (Proposed)">RL Agent (Proposed)</option>
+                            <option value="Emission Weighted Baseline">Emission Weighted Baseline</option>
+                            <option value="CSP Baseline">CSP Baseline</option>
+                        </select>
+                    </div>
+                    <div class="metrics-grid">
+                        <div class="card b"><h4>CO₂/Order</h4><div id="co2-b" class="val">--</div></div>
+                        <div class="card b"><h4>Delivery Time</h4><div id="time-b" class="val">--</div></div>
+                        <div class="card b"><h4>SLA Score</h4><div id="sla-b" class="val">--</div></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Comparative Deep Analysis Charts -->
+            <div class="charts-section">
+                <!-- Fleet Mixes -->
+                <div class="chart-card"><canvas id="fleet-a"></canvas></div>
+                <div class="chart-card"><canvas id="fleet-b"></canvas></div>
+                
+                <!-- Overlaid Trends -->
+                <div class="chart-card full"><canvas id="trends-overlaid"></canvas></div>
+                
+                <!-- Efficiency & Pareto -->
+                <div class="chart-card"><canvas id="efficiency-scatter"></canvas></div>
+                <div class="chart-card"><canvas id="pareto-evolution"></canvas></div>
+            </div>
+
+            <!-- 4. AI Insights -->
+            <div class="insights-box">
+                <h3>💡 Automated Performance Analysis</h3>
+                <div id="insight-text">Comparing strategic profiles...</div>
+            </div>
+        </main>
     </div>
 
     <script>
-        if (window.location.protocol === 'file:') {
-            document.getElementById('cors-warning').style.display = 'block';
+        let baselineData = [];
+        let chartInstances = {};
+        let map = null;
+
+        // --- Initialization ---
+        function initMap() {
+            map = L.map('map').setView([18.9690, 72.8205], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+            fetch('../../results/map_heatmap.json')
+                .then(r => r.json())
+                .then(data => {
+                    const heatPoints = data.map(p => [p.lat, p.lon, p.intensity]);
+                    L.heatLayer(heatPoints, {radius: 25, blur: 15}).addTo(map);
+                });
         }
 
-        let baselineData = [];
-        let paretoChartInstance = null;
-
-        // Fetch Baseline Comparison
-        fetch('../../results/baseline_comparison.csv')
-            .then(response => response.text())
-            .then(csvText => {
-                Papa.parse(csvText, {
-                    header: true,
-                    dynamicTyping: true,
-                    skipEmptyLines: true,
-                    complete: function(results) {
-                        baselineData = results.data;
-                        updateCards();
-                    }
-                });
-            }).catch(e => console.error("Error loading baseline_comparison.csv:", e));
-
-        // Fetch Pareto Front from the runs directory
-        fetch('../../runs/ppo_run/pareto_front.csv')
-            .then(response => response.text())
-            .then(csvText => {
-                Papa.parse(csvText, {
-                    header: true,
-                    dynamicTyping: true,
-                    skipEmptyLines: true,
-                    complete: function(results) {
-                        drawParetoChart(results.data);
-                    }
-                });
-            }).catch(e => console.error("Error loading pareto_front.csv:", e));
-
-        function updateCards() {
-            const selectedPolicy = document.getElementById('policy').value;
-            const data = baselineData.find(row => row.method === selectedPolicy);
+        async function loadData() {
+            const csv = await fetch('../../results/baseline_comparison.csv').then(r => r.text());
+            baselineData = Papa.parse(csv, {header: true, dynamicTyping: true, skipEmptyLines: true}).data;
             
-            if (data) {
-                document.getElementById('co2-val').innerText = data.co2_per_order_g.toFixed(1) + ' g';
-                document.getElementById('time-val').innerText = data.delivery_time_min.toFixed(1) + ' min';
-                document.getElementById('sla-val').innerText = data.sla_compliance_pct.toFixed(1) + ' %';
-                document.getElementById('cost-val').innerText = data.operational_cost_index.toFixed(2) + ' x';
+            const paretoCsv = await fetch('../../runs/ppo_run/pareto_front.csv').then(r => r.text());
+            const paretoData = Papa.parse(paretoCsv, {header: true, dynamicTyping: true, skipEmptyLines: true}).data;
+            
+            drawParetoEvolution(paretoData);
+            updateAll();
+        }
 
-                // Highlight RL agent as green, others standard
-                const color = selectedPolicy.includes('RL') ? '#27ae60' : '#7f8c8d';
-                document.getElementById('co2-val').style.color = color;
+        // --- Update Logic ---
+        function updateAll() {
+            const scenario = document.getElementById('scenario').value;
+            const polA = document.getElementById('policyA').value;
+            const polB = document.getElementById('policyB').value;
+
+            const dataA = baselineData.find(r => r.method === polA && r.scenario === scenario);
+            const dataB = baselineData.find(r => r.method === polB && r.scenario === scenario);
+
+            if (dataA) {
+                updateMetrics('a', dataA);
+                drawFleetMix('a', dataA);
+            }
+            if (dataB) {
+                updateMetrics('b', dataB);
+                drawFleetMix('b', dataB);
+            }
+            if (dataA && dataB) {
+                drawOverlaidTrends(dataA, dataB);
+                drawEfficiencyScatter(dataA, dataB);
+                generateInsights(dataA, dataB);
             }
         }
 
-        function drawParetoChart(historyData) {
-            const scatterPoints = historyData.map(d => ({
-                x: d.mean_co2_per_order, 
-                y: d.mean_delivery_time,
-                epoch: d.epoch
-            }));
+        function updateMetrics(id, data) {
+            document.getElementById(`co2-${id}`).innerText = data.co2_per_order_g.toFixed(1) + ' g';
+            document.getElementById(`time-${id}`).innerText = data.delivery_time_min.toFixed(1) + ' m';
+            document.getElementById(`sla-${id}`).innerText = data.sla_compliance_pct.toFixed(0) + '%';
+        }
 
-            const ctx = document.getElementById('paretoChart').getContext('2d');
-            paretoChartInstance = new Chart(ctx, {
+        // --- Chart Drawing Functions ---
+        function drawFleetMix(id, data) {
+            const mix = JSON.parse(data.fleet_mix_json.replace(/'/g, '"'));
+            const labels = Object.keys(mix);
+            const values = Object.values(mix);
+            const colors = labels.map(l => l === 'ev_bike' ? '#2ecc71' : (l === 'bicycle' ? '#3498db' : '#95a5a6'));
+
+            if (chartInstances[`fleet-${id}`]) chartInstances[`fleet-${id}`].destroy();
+            chartInstances[`fleet-${id}`] = new Chart(document.getElementById(`fleet-${id}`), {
+                type: 'doughnut',
+                data: { labels, datasets: [{ data: values, backgroundColor: colors }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: `Fleet Allocation (Strategy ${id.toUpperCase()})` } } }
+            });
+        }
+
+        function drawOverlaidTrends(a, b) {
+            const trendsA = JSON.parse(a.hourly_co2_json.replace(/'/g, '"'));
+            const trendsB = JSON.parse(b.hourly_co2_json.replace(/'/g, '"'));
+            const labels = Object.keys(trendsA).sort((x, y) => x - y);
+
+            if (chartInstances.trends) chartInstances.trends.destroy();
+            chartInstances.trends = new Chart(document.getElementById('trends-overlaid'), {
+                type: 'line',
+                data: {
+                    labels: labels.map(l => l + ':00'),
+                    datasets: [
+                        { label: 'Strategy A', data: labels.map(l => trendsA[l]), borderColor: '#3498db', tension: 0.3, fill: false },
+                        { label: 'Strategy B', data: labels.map(l => trendsB[l]), borderColor: '#e67e22', tension: 0.3, fill: false }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Hourly CO₂ Intensity Comparison' } } }
+            });
+        }
+
+        function drawEfficiencyScatter(a, b) {
+            if (chartInstances.efficiency) chartInstances.efficiency.destroy();
+            chartInstances.efficiency = new Chart(document.getElementById('efficiency-scatter'), {
                 type: 'scatter',
                 data: {
-                    datasets: [{
-                        label: 'RL Training Epochs',
-                        data: scatterPoints,
-                        backgroundColor: '#3498db',
-                        pointRadius: 6,
-                        pointHoverRadius: 10
-                    }]
+                    datasets: [
+                        { label: 'Strategy A', data: [{ x: a.delivery_time_min, y: a.co2_per_order_g }], backgroundColor: '#3498db', pointRadius: 12 },
+                        { label: 'Strategy B', data: [{ x: b.delivery_time_min, y: b.co2_per_order_g }], backgroundColor: '#e67e22', pointRadius: 12 }
+                    ]
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: `Live Pareto Front Tracker (CO₂ vs Time)`,
-                            font: { size: 16 }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const point = context.raw;
-                                    return `Epoch ${point.epoch}: ${point.x.toFixed(1)}g CO2, ${point.y.toFixed(1)}min`;
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            title: { display: true, text: 'Mean CO₂ per Order (grams)' }
-                        },
-                        y: {
-                            title: { display: true, text: 'Mean Delivery Time (min)' }
-                        }
-                    }
+                options: { 
+                    responsive: true, maintainAspectRatio: false, 
+                    plugins: { title: { display: true, text: 'Efficiency Trade-off (Time vs CO₂)' } },
+                    scales: { x: { title: { display: true, text: 'Time (min)' } }, y: { title: { display: true, text: 'CO₂ (g)' } } }
                 }
             });
         }
+
+        function drawParetoEvolution(data) {
+            const ctx = document.getElementById('pareto-evolution').getContext('2d');
+            new Chart(ctx, {
+                type: 'scatter',
+                data: { datasets: [{ label: 'RL Learning Path', data: data.map(d => ({ x: d.mean_co2_per_order, y: d.mean_delivery_time })), backgroundColor: 'rgba(52, 152, 219, 0.5)' }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Agent Training Pareto Frontier' } } }
+            });
+        }
+
+        function generateInsights(a, b) {
+            const co2Saved = ((b.co2_per_order_g - a.co2_per_order_g) / b.co2_per_order_g * 100).toFixed(1);
+            const timeDiff = ((a.delivery_time_min - b.delivery_time_min) / b.delivery_time_min * 100).toFixed(1);
+            
+            let text = `<strong>Comparison Result:</strong> Strategy A is producing ${co2Saved > 0 ? 'lower' : 'higher'} carbon emissions. `;
+            if (co2Saved > 0) {
+                text += `By switching to Strategy A, you reduce emissions by <b>${Math.abs(co2Saved)}%</b>. `;
+                text += timeDiff > 0 ? `This requires accepting a <b>${timeDiff}%</b> slower delivery time.` : `Surprisingly, it is also <b>${Math.abs(timeDiff)}%</b> faster!`;
+            }
+            
+            const scenario = document.getElementById('scenario').value;
+            if (scenario === 'Heatwave') text += "<br><em>Alert: High temperatures detected. EVs are showing increased battery drain; optimizing for Bicycles is recommended.</em>";
+            
+            document.getElementById('insight-text').innerHTML = text;
+        }
+
+        window.onload = () => { initMap(); loadData(); };
     </script>
 </body>
 </html>
