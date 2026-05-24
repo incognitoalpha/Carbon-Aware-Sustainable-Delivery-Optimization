@@ -42,7 +42,13 @@ class CitySimulator(simpy.Environment):
                 elif v_type == 'ev_bike':
                     delivery_time = random.uniform(15.0, 30.0)
                     co2 = random.uniform(5.0, 15.0) # Indirect emissions
-                    final_soc = max(0.0, random.uniform(0.6, 0.95))
+                    
+                    if self.config.get('soc_constraint_enabled', True):
+                        # With constraints enabled, we simulate a system that prevents low battery
+                        final_soc = random.uniform(0.2, 0.95)
+                    else:
+                        # Without constraints, battery can drop below the 0.15 reserve threshold
+                        final_soc = random.uniform(0.0, 0.95)
                 else: # petrol_bike
                     delivery_time = random.uniform(12.0, 25.0)
                     co2 = random.uniform(80.0, 150.0)
