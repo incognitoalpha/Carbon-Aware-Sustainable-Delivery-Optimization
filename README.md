@@ -1,7 +1,7 @@
 # Carbon-Aware Sustainable Delivery Optimization 
 
 [![Python 3.10](https://img.shields.io/badge/python-3.10-blue.svg)](https://www.python.org/downloads/release/python-3100/)
-[![Build Status](https://github.com/incognitoalpha/Carbon-Aware-Sustainable-Delivery-Optimization/actions/workflows/Evaluate/badge.svg)](https://github.com/incognitoalpha/Carbon-Aware-Sustainable-Delivery-Optimization/actions)
+[![Build Status](https://github.com/incognitoalpha/Carbon-Aware-Sustainable-Delivery-Optimization/actions/workflows/eval.yml/badge.svg)](https://github.com/incognitoalpha/Carbon-Aware-Sustainable-Delivery-Optimization/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 > **Enterprise-grade optimization engine for sustainable last-mile logistics, achieving Pareto-optimal CO₂ reduction while strictly enforcing delivery SLAs.**
