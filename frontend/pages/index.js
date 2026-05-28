@@ -1,8 +1,10 @@
+"use client";
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { Leaf, Truck, Clock, BarChart3, ShieldCheck, Map as MapIcon } from 'lucide-react';
 
 export default function Dashboard() {
+  // Initial static stats
   const [stats, setStats] = useState({
     co2Saved: '14.2%',
     slaCompliance: '98.5%',
@@ -11,10 +13,14 @@ export default function Dashboard() {
   });
 
   const [apiStatus, setApiStatus] = useState('Checking...');
+  const [isOptimizing, setIsOptimizing] = useState(false);
 
+  // Use the env variable, but default to your live Render URL so it works immediately
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://carbon-aware-sustainable-delivery.onrender.com';
+
+  // 1. Health Check on Load
   useEffect(() => {
     const checkApi = async () => {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
       try {
         const res = await fetch(`${apiUrl}/health`);
         if (res.ok) {
@@ -27,7 +33,57 @@ export default function Dashboard() {
       }
     };
     checkApi();
-  }, []);
+  }, [apiUrl]);
+
+  // 2. The Pitch Demo: Triggering Optimization
+  const handleOptimize = async () => {
+    setIsOptimizing(true);
+    setApiStatus('Optimizing Routes...');
+    
+    try {
+      // Create a mock batch of new orders to send to your backend
+      const mockRequest = {
+        pickup_dist: 2500, 
+        deadline_rem: Math.floor(Math.random() * 45) + 15, // Random deadline 15-60 mins
+        rider_soc: 0.8,
+        vehicle_type: 1, // EV
+        traffic_intensity: 1.2,
+        temp: 30
+      };
+
+      // Call your live Render API
+      const res = await fetch(`${apiUrl}/v1/optimize`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(mockRequest),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        
+        // Update the dashboard stats dynamically based on the backend response
+        setStats(prev => ({
+          ...prev,
+          co2Saved: `${(15 + Math.random() * 5).toFixed(1)}%`, // Simulating increased savings
+          avgDeliveryTime: `${data.estimated_time.toFixed(1)} min`,
+        }));
+        
+        setApiStatus('Optimization Complete');
+        
+        // Reset the status message back to normal after 3 seconds
+        setTimeout(() => setApiStatus('Connected to Render Engine'), 3000);
+      } else {
+        setApiStatus('Optimization Failed');
+      }
+    } catch (e) {
+      console.error("Optimization error:", e);
+      setApiStatus('Backend Offline');
+    } finally {
+      setIsOptimizing(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
@@ -61,8 +117,12 @@ export default function Dashboard() {
           <div>
             <h2 className="text-3xl font-bold">Sustainability Dashboard</h2>
             <p className="text-slate-500">Real-time carbon optimization metrics for your fleet.</p>
+            {/* Dynamic Status Indicator */}
             <div className="mt-2 flex items-center gap-2">
-              <div className={`h-2 w-2 rounded-full ${apiStatus === 'Connected to Render Engine' ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`}></div>
+              <div className={`h-2 w-2 rounded-full ${
+                apiStatus.includes('Connected') || apiStatus.includes('Complete') ? 'bg-emerald-500' : 
+                apiStatus.includes('Optimizing') ? 'bg-blue-500 animate-pulse' : 'bg-red-500'
+              }`}></div>
               <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">{apiStatus}</span>
             </div>
           </div>
@@ -70,8 +130,15 @@ export default function Dashboard() {
             <button className="bg-white border border-slate-200 px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-slate-50 transition">
               Export ESG Report
             </button>
-            <button className="bg-emerald-600 text-white px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-emerald-700 transition">
-              Optimize New Batch
+            {/* The new interactive button */}
+            <button 
+              onClick={handleOptimize}
+              disabled={isOptimizing}
+              className={`text-white px-4 py-2 rounded-lg font-medium shadow-sm transition ${
+                isOptimizing ? 'bg-emerald-400 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700'
+              }`}
+            >
+              {isOptimizing ? 'Processing Engine...' : 'Optimize New Batch'}
             </button>
           </div>
         </header>
@@ -80,7 +147,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-4 gap-6 mb-10">
           <StatCard label="CO₂ Reduction" value={stats.co2Saved} subtext="vs. standard routing" color="text-emerald-600" />
           <StatCard label="SLA Compliance" value={stats.slaCompliance} subtext="On-time deliveries" color="text-blue-600" />
-          <StatCard label="Avg Delivery" value={stats.avgDeliveryTime} subtext="-2.1 min from last week" color="text-slate-900" />
+          <StatCard label="Avg Delivery" value={stats.avgDeliveryTime} subtext="Live estimate" color="text-slate-900" />
           <StatCard label="Active Vehicles" value={stats.fleetActive} subtext="Real-time tracking" color="text-slate-900" />
         </div>
 
@@ -89,7 +156,7 @@ export default function Dashboard() {
           <div className="col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-100 h-96 flex flex-col items-center justify-center text-slate-400">
             <MapIcon size={48} className="mb-4 opacity-20" />
             <p>Interactive Map Component Loading...</p>
-            <p className="text-xs mt-2 italic">Connect to Leaflet in next step</p>
+            <p className="text-xs mt-2 italic">Connect to Leaflet API in Phase 3</p>
           </div>
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center text-slate-400">
              <BarChart3 size={48} className="mb-4 opacity-20" />
@@ -97,11 +164,6 @@ export default function Dashboard() {
           </div>
         </div>
       </main>
-
-      <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; }
-      `}</style>
     </div>
   );
 }
@@ -117,7 +179,7 @@ function NavItem({ icon, label, active = false }) {
 
 function StatCard({ label, value, subtext, color }) {
   return (
-    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 transition-all duration-500 ease-in-out">
       <p className="text-sm font-medium text-slate-500 mb-1">{label}</p>
       <p className={`text-3xl font-bold mb-1 ${color}`}>{value}</p>
       <p className="text-xs text-slate-400">{subtext}</p>
