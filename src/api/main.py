@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
 import os
@@ -17,6 +18,15 @@ app = FastAPI(
     title="Carbon-Aware Delivery Optimizer API (MVP)",
     description="Ultra-Lightweight Pitch MVP for sustainable logistics optimization",
     version="1.0.0"
+)
+
+# Add CORS Middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Optimization Engine (High-Fidelity Heuristic)

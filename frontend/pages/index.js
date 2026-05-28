@@ -10,6 +10,25 @@ export default function Dashboard() {
     fleetActive: 24
   });
 
+  const [apiStatus, setApiStatus] = useState('Checking...');
+
+  useEffect(() => {
+    const checkApi = async () => {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      try {
+        const res = await fetch(`${apiUrl}/health`);
+        if (res.ok) {
+          setApiStatus('Connected to Render Engine');
+        } else {
+          setApiStatus('Backend Error');
+        }
+      } catch (e) {
+        setApiStatus('Backend Offline');
+      }
+    };
+    checkApi();
+  }, []);
+
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <Head>
@@ -42,6 +61,10 @@ export default function Dashboard() {
           <div>
             <h2 className="text-3xl font-bold">Sustainability Dashboard</h2>
             <p className="text-slate-500">Real-time carbon optimization metrics for your fleet.</p>
+            <div className="mt-2 flex items-center gap-2">
+              <div className={`h-2 w-2 rounded-full ${apiStatus === 'Connected to Render Engine' ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`}></div>
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">{apiStatus}</span>
+            </div>
           </div>
           <div className="flex gap-4">
             <button className="bg-white border border-slate-200 px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-slate-50 transition">
