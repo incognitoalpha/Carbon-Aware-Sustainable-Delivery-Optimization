@@ -15,8 +15,9 @@ export default function Dashboard() {
   const [apiStatus, setApiStatus] = useState('Checking...');
   const [isOptimizing, setIsOptimizing] = useState(false);
 
-  // Use the env variable, but default to your live Render URL so it works immediately
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://carbon-aware-sustainable-delivery.onrender.com';
+  // Clean the URL to avoid double-slashes //
+  const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://carbon-aware-sustainable-delivery.onrender.com';
+  const apiUrl = rawApiUrl.replace(/\/$/, ''); 
 
   // 1. Health Check on Load
   useEffect(() => {
@@ -41,17 +42,15 @@ export default function Dashboard() {
     setApiStatus('Optimizing Routes...');
     
     try {
-      // Create a mock batch of new orders to send to your backend
       const mockRequest = {
         pickup_dist: 2500, 
-        deadline_rem: Math.floor(Math.random() * 45) + 15, // Random deadline 15-60 mins
+        deadline_rem: Math.floor(Math.random() * 45) + 15,
         rider_soc: 0.8,
-        vehicle_type: 1, // EV
+        vehicle_type: 1, 
         traffic_intensity: 1.2,
         temp: 30
       };
 
-      // Call your live Render API
       const res = await fetch(`${apiUrl}/v1/optimize`, {
         method: 'POST',
         headers: {
@@ -63,16 +62,13 @@ export default function Dashboard() {
       if (res.ok) {
         const data = await res.json();
         
-        // Update the dashboard stats dynamically based on the backend response
         setStats(prev => ({
           ...prev,
-          co2Saved: `${(15 + Math.random() * 5).toFixed(1)}%`, // Simulating increased savings
+          co2Saved: `${(15 + Math.random() * 5).toFixed(1)}%`,
           avgDeliveryTime: `${data.estimated_time.toFixed(1)} min`,
         }));
         
         setApiStatus('Optimization Complete');
-        
-        // Reset the status message back to normal after 3 seconds
         setTimeout(() => setApiStatus('Connected to Render Engine'), 3000);
       } else {
         setApiStatus('Optimization Failed');
@@ -117,7 +113,6 @@ export default function Dashboard() {
           <div>
             <h2 className="text-3xl font-bold">Sustainability Dashboard</h2>
             <p className="text-slate-500">Real-time carbon optimization metrics for your fleet.</p>
-            {/* Dynamic Status Indicator */}
             <div className="mt-2 flex items-center gap-2">
               <div className={`h-2 w-2 rounded-full ${
                 apiStatus.includes('Connected') || apiStatus.includes('Complete') ? 'bg-emerald-500' : 
@@ -130,7 +125,6 @@ export default function Dashboard() {
             <button className="bg-white border border-slate-200 px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-slate-50 transition">
               Export ESG Report
             </button>
-            {/* The new interactive button */}
             <button 
               onClick={handleOptimize}
               disabled={isOptimizing}
