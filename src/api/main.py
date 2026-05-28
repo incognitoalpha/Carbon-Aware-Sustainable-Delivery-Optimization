@@ -20,13 +20,14 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Add CORS Middleware
+# Explicitly permissive CORS for Demo
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=False,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Optimization Engine (High-Fidelity Heuristic)

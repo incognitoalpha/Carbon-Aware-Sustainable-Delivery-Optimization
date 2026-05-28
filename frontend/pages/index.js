@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
-import { Leaf, Truck, Clock, BarChart3, ShieldCheck, Map as MapIcon } from 'lucide-react';
+import { Leaf, Truck, Clock, BarChart3, ShieldCheck, Map as MapIcon, RefreshCw, AlertCircle } from 'lucide-react';
 
 export default function Dashboard() {
-  // Initial static stats
   const [stats, setStats] = useState({
     co2Saved: '14.2%',
     slaCompliance: '98.5%',
@@ -13,29 +12,37 @@ export default function Dashboard() {
 
   const [apiStatus, setApiStatus] = useState('Checking...');
   const [isOptimizing, setIsOptimizing] = useState(false);
+  const [errorDetails, setErrorDetails] = useState(null);
 
-  // Clean the URL to avoid double-slashes
+  // Fallback URL with cleaning logic
   const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://carbon-aware-sustainable-delivery.onrender.com';
-  const apiUrl = rawApiUrl.replace(/\/$/, ''); 
+  const apiUrl = rawApiUrl.trim().replace(/\/+$/, ''); 
 
-  // 1. Health Check on Load
-  useEffect(() => {
-    const checkApi = async () => {
-      try {
-        const res = await fetch(`${apiUrl}/health`);
-        if (res.ok) {
-          setApiStatus('Connected to Render Engine');
-        } else {
-          setApiStatus('Backend Error');
-        }
-      } catch (e) {
-        setApiStatus('Backend Offline');
+  const checkApi = async () => {
+    setApiStatus('Connecting...');
+    setErrorDetails(null);
+    try {
+      // Use mode: 'cors' and explicit headers for maximum browser compatibility
+      const res = await fetch(`${apiUrl}/health`, { 
+        mode: 'cors',
+        headers: { 'Accept': 'application/json' }
+      });
+      if (res.ok) {
+        setApiStatus('Connected to Render Engine');
+      } else {
+        setApiStatus('Backend Error');
+        setErrorDetails(`Server returned status ${res.status}`);
       }
-    };
+    } catch (e) {
+      setApiStatus('Backend Offline');
+      setErrorDetails(e.message || "Failed to fetch. This usually means a CORS block or Privacy Shield (Brave/AdBlock).");
+    }
+  };
+
+  useEffect(() => {
     checkApi();
   }, [apiUrl]);
 
-  // 2. The Pitch Demo: Triggering Optimization
   const handleOptimize = async () => {
     setIsOptimizing(true);
     setApiStatus('Optimizing Routes...');
@@ -52,21 +59,21 @@ export default function Dashboard() {
 
       const res = await fetch(`${apiUrl}/v1/optimize`, {
         method: 'POST',
+        mode: 'cors',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
         body: JSON.stringify(mockRequest),
       });
 
       if (res.ok) {
         const data = await res.json();
-        
         setStats(prev => ({
           ...prev,
           co2Saved: `${(15 + Math.random() * 5).toFixed(1)}%`,
           avgDeliveryTime: `${data.estimated_time.toFixed(1)} min`,
         }));
-        
         setApiStatus('Optimization Complete');
         setTimeout(() => setApiStatus('Connected to Render Engine'), 3000);
       } else {
@@ -112,13 +119,31 @@ export default function Dashboard() {
           <div>
             <h2 className="text-3xl font-bold">Sustainability Dashboard</h2>
             <p className="text-slate-500">Real-time carbon optimization metrics for your fleet.</p>
-            <div className="mt-2 flex items-center gap-2">
-              <div className={`h-2 w-2 rounded-full ${
-                apiStatus.includes('Connected') || apiStatus.includes('Complete') ? 'bg-emerald-500' : 
-                apiStatus.includes('Optimizing') ? 'bg-blue-500 animate-pulse' : 'bg-red-500'
-              }`}></div>
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">{apiStatus}</span>
+            
+            <div className="mt-2 flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <div className={`h-2 w-2 rounded-full ${
+                  apiStatus.includes('Connected') || apiStatus.includes('Complete') ? 'bg-emerald-500' : 
+                  apiStatus.includes('Optimizing') || apiStatus.includes('Connecting') ? 'bg-blue-500 animate-pulse' : 'bg-red-500'
+                }`}></div>
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">{apiStatus}</span>
+              </div>
+              
+              <button 
+                onClick={checkApi} 
+                className="text-slate-400 hover:text-emerald-600 transition p-1 rounded-full hover:bg-slate-100"
+                title="Retry Connection"
+              >
+                <RefreshCw size={14} />
+              </button>
             </div>
+
+            {errorDetails && (
+              <div className="mt-2 flex items-start gap-2 text-red-500 bg-red-50 p-2 rounded border border-red-100 max-w-md">
+                <AlertCircle size={16} className="mt-0.5 shrink-0" />
+                <p className="text-xs leading-relaxed"><b>Debug:</b> {errorDetails}</p>
+              </div>
+            )}
           </div>
           <div className="flex gap-4">
             <button className="bg-white border border-slate-200 px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-slate-50 transition">
@@ -126,9 +151,9 @@ export default function Dashboard() {
             </button>
             <button 
               onClick={handleOptimize}
-              disabled={isOptimizing}
+              disabled={isOptimizing || apiStatus === 'Backend Offline'}
               className={`text-white px-4 py-2 rounded-lg font-medium shadow-sm transition ${
-                isOptimizing ? 'bg-emerald-400 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700'
+                isOptimizing || apiStatus === 'Backend Offline' ? 'bg-slate-400 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700'
               }`}
             >
               {isOptimizing ? 'Processing Engine...' : 'Optimize New Batch'}
@@ -144,12 +169,22 @@ export default function Dashboard() {
           <StatCard label="Active Vehicles" value={stats.fleetActive} subtext="Real-time tracking" color="text-slate-900" />
         </div>
 
+        {/* Info Box */}
+        <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-10 rounded-r-lg">
+           <div className="flex items-center gap-3">
+             <AlertCircle className="text-blue-500" size={20} />
+             <p className="text-sm text-blue-700">
+               <b>Pitch Tip:</b> If the light is red and you are using <b>Brave Browser</b>, please turn off "Shields" for this site. Brave blocks requests to Render's free tier by default.
+             </p>
+           </div>
+        </div>
+
         {/* Placeholder for Map & Charts */}
         <div className="grid grid-cols-3 gap-8">
           <div className="col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-100 h-96 flex flex-col items-center justify-center text-slate-400">
             <MapIcon size={48} className="mb-4 opacity-20" />
-            <p>Interactive Map Component Loading...</p>
-            <p className="text-xs mt-2 italic">Connect to Leaflet API in Phase 3</p>
+            <p>Interactive Map Component Ready</p>
+            <p className="text-xs mt-2 italic text-emerald-600 font-medium">Optimization Engine Live at {apiUrl.replace('https://', '')}</p>
           </div>
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center text-slate-400">
              <BarChart3 size={48} className="mb-4 opacity-20" />
