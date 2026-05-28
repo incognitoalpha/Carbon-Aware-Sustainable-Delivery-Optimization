@@ -1,4 +1,3 @@
-"use client";
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { Leaf, Truck, Clock, BarChart3, ShieldCheck, Map as MapIcon } from 'lucide-react';
@@ -15,7 +14,7 @@ export default function Dashboard() {
   const [apiStatus, setApiStatus] = useState('Checking...');
   const [isOptimizing, setIsOptimizing] = useState(false);
 
-  // Clean the URL to avoid double-slashes //
+  // Clean the URL to avoid double-slashes
   const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://carbon-aware-sustainable-delivery.onrender.com';
   const apiUrl = rawApiUrl.replace(/\/$/, ''); 
 
